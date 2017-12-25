@@ -5,7 +5,7 @@ def send():
 	fichier = b''
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	nomFichier = input("Enter file name: ")
-	ext = '.' + nomFichier.split(".")[1]
+
 	with open(nomFichier, "rb") as file:
 		myLib.log("{} Open on rb".format(nomFichier))
 		fichier = file.read()
@@ -17,8 +17,8 @@ def send():
 	myLib.log("Someone just connected himself\n{} :{}".format(infos[0], infos[1]))
 	myLib.log("Length of opened file :{} bytes".format(sys.getsizeof(fichier)))
 	length = sys.getsizeof(fichier)
-	client.send((str(length) + ',' + ext).encode())
-	myLib.log("Sleeping for 0.5 second to be sure client is ready")
+	client.send((str(length) + ',' + nomFichier).encode())
+	myLib.log("Sleeping 1s to be sure client is ready")
 	time.sleep(1)
 	myLib.log("Sending...")
 	temps = time.time()
@@ -28,37 +28,48 @@ def send():
 	server.close()
 	client.close()
 
-def receive():
+def receive(recvBufferSize = 1000000, saveBufferSize = 150):
 
 	client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 	ip = input("Enter sender's IP: ")
 	port = int(input("Enter sender's open PORT: "))
+
+	fileName = input("Save as: ")
+	
 	client.connect((ip,port))
 	myLib.log('Connected')
-	fichier = bytes()# Where received data will be stored
+	
 	recu = client.recv(1024).decode("utf-8") # Sender immediately sends a message when connected
-	taille,ext = recu.split(',')#recu contains the length of file and file extension, separated by a comma
+	taille, fileName = recu.split(',')#recu contains the length of file and file extension, separated by a comma
 	taille = int(taille)
 	tailleRecu = 0
+	fichier = bytes()# Where received data will be stored
+	myLib.log("The length of {} is {} bytes".format(fileName,taille))
 
-	myLib.log("The length of {} is {} bytes".format(ext,taille))
-	myLib.log("Receiving...")
+	with open(fileName, "wb+") as file:
+		recv = True
+		myLib.log("Receiving...")
+		debut = time.time()
+		while(recv):
+			for i in range(saveBufferSize):
+				recu = client.recv(recvBufferSize)
+				if recu == b'':
+					fichier += recu
+					recv = False
+					break
 
-	debut = time.time()
-	recCount = 0
-	while(True):
-		recu = client.recv(1000000)
-		tailleRecu = sys.getsizeof(fichier)
-		recCount += 1
-		if(recu  == b'stop' or recu  == b''):
-			fichier += recu
-			break
-		fichier += recu
-		print('\r{}/{}'.format(tailleRecu,taille),end = '')
-	myLib.log('{}/{} in {} tries'.format(tailleRecu,taille,recCount))
-	myLib.log("All received !")
+				fichier += recu
+				tailleRecu += sys.getsizeof(recu)
+				print('\r{}/{}'.format(tailleRecu,taille),end = '')
+
+			file.write(fichier)
+			fichier = b""
+
 	duree = time.time()-debut
-	myLib.log('Speed: {} B/s'.format(float(taille)/duree))
+	myLib.log('{}/{} in {}s'.format(tailleRecu,taille,duree))
+	myLib.log("All received !")
+	
+	myLib.log('Average speed: {} MB/s'.format(os.path.getsize(fileName)/1000000/duree))
 	if myLib.ask("Print received file?(may be unreadable): ", "Y", "N"):
 		try:
 			print(fichier.decode("utf-8"))
@@ -67,13 +78,6 @@ def receive():
 	else:
 		myLib.log("Not printing")
 	
-	if myLib.ask("Save received file?: ", "Y", "N"):
-		chemin = input("Enter path for saving(#  =  {}): ".format(os.getcwd()))
-		if not chemin  == "#":
-			os.chdir(chemin)
 
-		with open(input("Enter file name(without extension): ") + ext,"wb") as file:
-			file.write(fichier)
-		myLib.log("Saving done")
 	myLib.log("Bye !")
 	client.close()
