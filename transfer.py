@@ -33,8 +33,6 @@ def receive(recvBufferSize = 1000000, saveBufferSize = 150):
 	client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 	ip = input("Enter sender's IP: ")
 	port = int(input("Enter sender's open PORT: "))
-
-	fileName = input("Save as: ")
 	
 	client.connect((ip,port))
 	myLib.log('Connected')
@@ -59,8 +57,9 @@ def receive(recvBufferSize = 1000000, saveBufferSize = 150):
 					break
 
 				fichier += recu
-				tailleRecu += sys.getsizeof(recu)
-				print('\r{}/{}'.format(tailleRecu,taille),end = '')
+				
+			tailleRecu += sys.getsizeof(fichier)
+			print('\r{}/{}'.format(tailleRecu,taille),end = '')
 
 			file.write(fichier)
 			fichier = b""
