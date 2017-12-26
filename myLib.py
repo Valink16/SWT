@@ -1,7 +1,3 @@
-import netifaces
-import subprocess
-from threading import Thread
-from time import sleep
 def ask(msg,pos,neg):
 	#simple neg or pos answer asking function
 	#args must be string type
