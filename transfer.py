@@ -1,5 +1,5 @@
 import myLib, time, socket, sys, os
-
+from threading import Thread
 
 def send():
 	fichier = b''
@@ -14,7 +14,7 @@ def send():
 	server.listen(1)
 	myLib.log("Listening")
 	client, infos = server.accept()
-	myLib.log("Someone just connected himself\n{} :{}".format(infos[0], infos[1]))
+	myLib.log("Someone just connected himself: IP: {}, PORT: {}".format(infos[0], infos[1]))
 	myLib.log("Length of opened file :{} bytes".format(sys.getsizeof(fichier)))
 	length = sys.getsizeof(fichier)
 	client.send((str(length) + ',' + nomFichier).encode())
@@ -48,35 +48,46 @@ def receive(recvBufferSize = 1000000, saveBufferSize = 150):
 		recv = True
 		myLib.log("Receiving...")
 		debut = time.time()
+		progress = loadThread(fileName, taille)
+		progress.start()
 		while(recv):
 			for i in range(saveBufferSize):
 				recu = client.recv(recvBufferSize)
+				fichier += recu
 				if recu == b'':
-					fichier += recu
 					recv = False
 					break
 
-				fichier += recu
-				
 			tailleRecu += sys.getsizeof(fichier)
-			print('\r{}/{}'.format(tailleRecu,taille),end = '')
-
 			file.write(fichier)
 			fichier = b""
 
 	duree = time.time()-debut
+	progress.kill()
+	progress.join()
+
 	myLib.log('{}/{} in {}s'.format(tailleRecu,taille,duree))
 	myLib.log("All received !")
 	
 	myLib.log('Average speed: {} MB/s'.format(os.path.getsize(fileName)/1000000/duree))
-	if myLib.ask("Print received file?(may be unreadable): ", "Y", "N"):
-		try:
-			print(fichier.decode("utf-8"))
-		except:
-			print(fichier)
-	else:
-		myLib.log("Not printing")
-	
 
 	myLib.log("Bye !")
 	client.close()
+
+class loadThread(Thread):
+	def __init__(self, fileName, maxSize, interval = 5):
+		Thread.__init__(self)
+		self.fileName = fileName
+		self.maxSize = maxSize
+		self.interval = interval
+		self.running = True
+
+	def run(self):
+		while self.running:
+			print("\r{}b / {}b".format(os.path.getsize(self.fileName), self.maxSize), end="")
+			time.sleep(self.interval)
+
+		print("")
+
+	def kill(self):
+		self.running = False
