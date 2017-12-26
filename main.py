@@ -8,6 +8,6 @@ r = input("(S)end or (R)eceive ?: ")
 if r.upper() == "S":
     transfer.send()
 elif r.upper() == "R":
-    transfer.receive()
+    transfer.receive(1041, 150)
 else:
     myLib.log("Choose \"S\" or \"R\"")
