@@ -20,10 +20,12 @@ def send():
 	client.send((str(length) + ',' + nomFichier).encode())
 	myLib.log("Sleeping 1s to be sure client is ready")
 	time.sleep(1)
+
 	myLib.log("Sending...")
 	temps = time.time()
 	client.send(fichier)
 	temps = time.time() - temps
+
 	myLib.log('Sended in {} seconds'.format(str(temps)[:5]))
 	server.close()
 	client.close()
@@ -48,7 +50,7 @@ def receive(recvBufferSize = 1000000, saveBufferSize = 150):
 		recv = True
 		myLib.log("Receiving...")
 		debut = time.time()
-		progress = loadThread(fileName, taille)
+		progress = loadThread(fileName, taille, 1)
 		progress.start()
 		while(recv):
 			for i in range(saveBufferSize):
