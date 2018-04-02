@@ -1,38 +1,43 @@
 import myLib, time, socket, sys, os
 from threading import Thread
 
-MB100 = 1024 * 1024 * 100
+BUFFERSIZE = 1024 * 1024 * 50 # Change this to change buffer size (The highter it is, higher will be the memory usage)
 
 def send():
-	fichier = b''
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	nomFichier = input("Enter file name: ")
-	with open(nomFichier, "rb") as file:
-		fichier = file.read()
+	length = os.path.getsize(nomFichier)
+	myLib.log("Size of file: {} KBs".format(int(length / 1024)))
 	port = int(input("OPEN PORT: "))
+
 	server.bind(('', port))
 	server.listen(1)
 	myLib.log("Listening")
 	client, infos = server.accept()
 	myLib.log("Someone just connected himself: IP: {}, PORT: {}".format(infos[0], infos[1]))
-	length = os.path.getsize(nomFichier)
 
-
-	client.send((str(length) + ',' + nomFichier).encode())
+	client.send((str(length) + ',' + nomFichier.split("/")[-1]).encode())
 	myLib.log("Sleeping 1s to be sure client is ready")
 	time.sleep(1)
 
 	myLib.log("Sending...")
-	myLib.log("{} Open on rb".format(nomFichier))
 	temps = time.time()
-	client.send(fichier)
+	with open(nomFichier, "rb") as file:
+		myLib.log("{} Open on rb".format(nomFichier))
+		loadingAndSending = True
+		while loadingAndSending:
+			fichier = file.read(BUFFERSIZE)
+			myLib.log("Length of buffer: {}".format(sys.getsizeof(fichier)))
+			client.send(fichier)
+			loadingAndSending = not fichier == b""
 	temps = time.time() - temps
 
 	myLib.log('Sended in {} seconds'.format(str(temps)[:5]))
 	server.close()
 	client.close()
 
-def receive(recvBufferSize = 1000000, saveBufferSize = 150):
+
+def receive(recvBufferSize = BUFFERSIZE, saveBufferSize = 1):
 
 	client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 	ip = input("Enter sender's IP: ")
@@ -60,8 +65,8 @@ def receive(recvBufferSize = 1000000, saveBufferSize = 150):
 				fichier += recu
 				if recu == b'':
 					recv = False
+					myLib.log("recu is empty, size: {}".format(sys.getsizeof(recu)))
 					break
-
 			tailleRecu += sys.getsizeof(fichier)
 			file.write(fichier)
 			fichier = b""
@@ -72,9 +77,7 @@ def receive(recvBufferSize = 1000000, saveBufferSize = 150):
 
 	myLib.log('{}/{} in {}s'.format(tailleRecu,taille,duree))
 	myLib.log("All received !")
-
 	myLib.log('Average speed: {} MB/s'.format(os.path.getsize(fileName)/1000000/duree))
-
 	myLib.log("Bye !")
 	client.close()
 
