@@ -47,7 +47,8 @@ def receive(recvBufferSize = BUFFERSIZE, saveBufferSize = 1):
 	myLib.log('Connected')
 
 	recu = client.recv(1024).decode("utf-8") # Sender immediately sends a message when connected
-	taille, fileName = recu.split(',')#recu contains the length of file and file extension, separated by a comma
+	taille = recu.split(',')[0] #recu contains the length of file and file extension, separated by a comma
+	fileName = input("Save as: ")
 	taille = int(taille)
 	tailleRecu = 0
 	fichier = bytes()# Where received data will be stored
@@ -77,7 +78,11 @@ def receive(recvBufferSize = BUFFERSIZE, saveBufferSize = 1):
 
 	myLib.log('{}/{} in {}s'.format(tailleRecu,taille,duree))
 	myLib.log("All received !")
-	myLib.log('Average speed: {} MB/s'.format(os.path.getsize(fileName)/1000000/duree))
+	try:
+		myLib.log('Average speed: {} MB/s'.format(os.path.getsize(fileName)/1000000/duree))
+	except ZeroDivisionError:
+		myLib.log('Average speed: Fast AF !')
+
 	myLib.log("Bye !")
 	client.close()
 
@@ -97,4 +102,5 @@ class loadThread(Thread):
 		print("")
 
 	def kill(self):
+		print("\n", end = "")
 		self.running = False
